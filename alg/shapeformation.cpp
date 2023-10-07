@@ -194,8 +194,9 @@ int ShapeFormationParticle::constructionReceiveDir() const {
   return labelOfFirstNbrWithProperty<ShapeFormationParticle>(prop);
 }
 
-std::pair<int, int> ShapeFormationParticle::amplitudeAndOffset(ShapeFormationParticle particle) const {
-  return particle.ampOff;
+std::pair<int, int> ShapeFormationParticle::amplitudeAndOffset(
+    ShapeFormationParticle p) const {
+  return p.ampOff;
 }
 
 bool ShapeFormationParticle::canFinish() const {
@@ -283,14 +284,17 @@ void ShapeFormationParticle::updateConstructionDir() {
   } else if (mode == "l") {  // Line construction.
     constructionDir = (constructionReceiveDir() + 3) % 6;
   } else if (mode == "z") {
-    constructionDir = (constructionReceiveDir() + 3) % 6;
-    if (hasNbrAtLabel(constructionReceiveDir())) {
-      auto nbr = nbrAtLabel(constructionReceiveDir());
-      std::pair <int, int> amp = amplitudeAndOffset(nbr);
+    constructionDir = constructionReceiveDir();
+    if (hasNbrAtLabel(constructionDir)) {
+      auto nbr = nbrAtLabel(constructionDir);
+      std::pair <int, int> amp = nbr.ampOff;
       if (abs(amp.first + amp.second) == 1) {
+        constructionDir = (constructionDir + amp.second) % 6;
+        if (constructionDir < 0)
+          constructionDir += 6;
         ampOff = std::make_pair(amp.first + amp.second, -amp.second);
-        constructionDir = (constructionReceiveDir() + amp.second) % 6;
       } else {
+        constructionDir = (constructionDir + 3) % 6;
         ampOff = std::make_pair(amp.first + amp.second, amp.second);
       }
     }
