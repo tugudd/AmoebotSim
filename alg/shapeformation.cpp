@@ -288,7 +288,7 @@ void ShapeFormationParticle::updateConstructionDir() {
     if (hasNbrAtLabel(constructionDir)) {
       auto nbr = nbrAtLabel(constructionDir);
       std::pair <int, int> amp = nbr.ampOff;
-      if (abs(amp.first + amp.second) == 1) {
+      if (abs(amp.first + amp.second) == 3) {
         constructionDir = (constructionDir + amp.second) % 6;
         if (constructionDir < 0)
           constructionDir += 6;
