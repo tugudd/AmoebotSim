@@ -185,6 +185,11 @@ int ShapeFormationParticle::constructionReceiveDir() const {
           (p.state == State::Seed || p.state == State::Finish) &&
           (pointsAtMe(p, p.constructionDir) ||
            pointsAtMe(p, (p.constructionDir + 3) % 6));
+    } else if (p.mode == "z") {
+      return isContracted() &&
+             (((p.state == State::Seed || p.state == State::Finish) &&
+                                    pointsAtMe(p, p.constructionDir)) ||
+                                (p.state == State::Seed && pointsAtMe(p, (p.constructionDir + 3) % 6)));
     } else {
       return isContracted() &&
           (p.state == State::Seed || p.state == State::Finish) &&
