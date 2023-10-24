@@ -40,7 +40,7 @@ class ShapeFormationParticle : public AmoebotParticle {
   ShapeFormationParticle(const Node head, const int globalTailDir,
                          const int orientation, AmoebotSystem& system,
                          State state, const QString mode,
-                         std::pair<int, int> ampOff);
+                         int param1, int param2);
 
   // Executes one particle activation.
   virtual void activate();
@@ -97,7 +97,8 @@ class ShapeFormationParticle : public AmoebotParticle {
  protected:
   State state;
   QString mode;
-  std::pair<int, int> ampOff;
+  int param1;
+  int param2;
   int turnSignal;
   int constructionDir;
   int moveDir;

@@ -11,11 +11,12 @@ ShapeFormationParticle::ShapeFormationParticle(const Node head,
                                                const int orientation,
                                                AmoebotSystem& system,
                                                State state, const QString mode,
-                                               std::pair<int, int> ampOff)
+                                               int param1, int param2)
   : AmoebotParticle(head, globalTailDir, orientation, system),
     state(state),
     mode(mode),
-    ampOff(ampOff),
+    param1(param1),
+    param2(param2),
     constructionDir(-1),
     moveDir(-1),
     followDir(-1) {
@@ -194,11 +195,6 @@ int ShapeFormationParticle::constructionReceiveDir() const {
   return labelOfFirstNbrWithProperty<ShapeFormationParticle>(prop);
 }
 
-std::pair<int, int> ShapeFormationParticle::amplitudeAndOffset(
-    ShapeFormationParticle p) const {
-  return p.ampOff;
-}
-
 bool ShapeFormationParticle::canFinish() const {
   return constructionReceiveDir() != -1;
 }
@@ -285,20 +281,23 @@ void ShapeFormationParticle::updateConstructionDir() {
     constructionDir = (constructionReceiveDir() + 3) % 6;
   } else if (mode == "z") {
     constructionDir = constructionReceiveDir();
-    if (hasNbrAtLabel(constructionDir)) {
-      auto nbr = nbrAtLabel(constructionDir);
-      std::pair <int, int> amp = nbr.ampOff;
-      if (abs(amp.first + amp.second) == 3) {
-        constructionDir = (constructionDir + amp.second) % 6;
-        if (constructionDir < 0)
-          constructionDir += 6;
-        ampOff = std::make_pair(amp.first + amp.second, -amp.second);
-      } else {
-        constructionDir = (constructionDir + 3) % 6;
-        ampOff = std::make_pair(amp.first + amp.second, amp.second);
+
+    auto nbr = nbrAtLabel(constructionDir);
+    int amp = nbr.param1;
+    int offset = nbr.param2;
+    if (abs(amp + offset) == 3) {
+      constructionDir = (constructionDir + offset) % 6;
+      param1 = amp + offset;
+      param2 = -offset;
+      if (constructionDir < 0) {
+        constructionDir += 6;
       }
+    } else {
+      constructionDir = (constructionDir + 3) % 6;
+      param1 = amp + offset;
+      param2 = offset;
     }
-    }
+  }
     else {
     // This is executing in an invalid mode.
     Q_ASSERT(false);
@@ -333,7 +332,7 @@ ShapeFormationSystem::ShapeFormationSystem(int numParticles, double holeProb,
   // Insert the seed at (0,0).
   std::set<Node> occupied;
   insert(new ShapeFormationParticle(Node(0, 0), -1, randDir(), *this,
-                                    ShapeFormationParticle::State::Seed, mode, std::make_pair(0, 1)));
+                                    ShapeFormationParticle::State::Seed, mode, 0, 1));
   occupied.insert(Node(0, 0));
 
   std::set<Node> candidates;
@@ -361,7 +360,7 @@ ShapeFormationSystem::ShapeFormationSystem(int numParticles, double holeProb,
     if (randBool(1.0 - holeProb)) {
       insert(new ShapeFormationParticle(randCand, -1, randDir(), *this,
                                         ShapeFormationParticle::State::Idle,
-                                        mode, std::make_pair(0, 1)));
+                                        mode, 0, 1));
       occupied.insert(randCand);
       particlesAdded++;
 
