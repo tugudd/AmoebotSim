@@ -302,7 +302,47 @@ void ShapeFormationParticle::updateConstructionDir() {
       param1 = amp + offset;
       param2 = offset;
     }
-  }
+  } else if (mode == "hh") {
+    constructionDir = constructionReceiveDir();
+
+    auto nbr = nbrAtLabel(constructionDir);
+    int len = nbr.param1;
+    int flag = nbr.param2;
+
+    if (!flag) {
+      param2 = 0;
+      constructionDir = (constructionDir + 1) % 6;
+
+      if (hasNbrAtLabel(constructionDir) &&
+          (nbrAtLabel(constructionDir).state == State::Finish ||
+                                             nbrAtLabel(constructionDir).state == State::Seed)) {
+        constructionDir = (constructionDir + 1) % 6;
+      }
+      if (hasNbrAtLabel(constructionDir) &&
+          (nbrAtLabel(constructionDir).state == State::Finish ||
+           nbrAtLabel(constructionDir).state == State::Seed)) {
+        constructionDir = (constructionDir + 1) % 6;
+      }
+    } else {
+      param1 = len + 1;
+      if (len + 1 == 4) {
+        constructionDir = (constructionDir + 4) % 6;
+      } else {
+        constructionDir = (constructionDir + 3) % 6;
+      }
+
+      if (param1 == 5) {
+        param1 = 1;
+      }
+
+      if (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish ||
+                                             nbrAtLabel(constructionDir).state == State::Seed)) {
+        constructionDir = (constructionDir + 5) % 6;
+        param2 = 0;
+      }
+    }
+
+   }
     else {
     // This is executing in an invalid mode.
     Q_ASSERT(false);
@@ -330,7 +370,7 @@ bool ShapeFormationParticle::hasTailFollower() const {
 ShapeFormationSystem::ShapeFormationSystem(int numParticles, double holeProb,
                                            QString mode) {
   Q_ASSERT(mode == "h" || mode == "s" || mode == "t1" || mode == "t2" ||
-           mode == "l" || mode == "z");
+           mode == "l" || mode == "z" || mode == "hh");
   Q_ASSERT(numParticles > 0);
   Q_ASSERT(0 <= holeProb && holeProb <= 1);
 
@@ -398,6 +438,6 @@ bool ShapeFormationSystem::hasTerminated() const {
 }
 
 std::set<QString> ShapeFormationSystem::getAcceptedModes() {
-  std::set<QString> set = {"h", "t1", "t2", "s", "l", "z"};
+  std::set<QString> set = {"h", "t1", "t2", "s", "l", "z", "hh"};
   return set;
 }
