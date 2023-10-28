@@ -185,7 +185,7 @@ int ShapeFormationParticle::constructionReceiveDir() const {
           (p.state == State::Seed || p.state == State::Finish) &&
           (pointsAtMe(p, p.constructionDir) ||
            pointsAtMe(p, (p.constructionDir + 3) % 6));
-    } else if (p.mode == "z") {
+    } else if (p.mode == "z" || p.mode == "t1x2") {
       return isContracted() &&
              (((p.state == State::Seed || p.state == State::Finish) &&
                                     pointsAtMe(p, p.constructionDir)) ||
@@ -240,7 +240,7 @@ void ShapeFormationParticle::updateConstructionDir() {
         constructionDir = (constructionDir + 2) % 6;
       }
     }
-  } else if (mode == "t1") {  // Vertex Triangle construction.
+  } else if (mode == "t1" || mode == "t1x2") {  // Vertex Triangle construction.
     constructionDir = constructionReceiveDir();
     int labelOfFirstNbr = labelOfFirstNbrInState({State::Finish, State::Seed},
                                                  (constructionDir + 5) % 6);
@@ -304,45 +304,73 @@ void ShapeFormationParticle::updateConstructionDir() {
     }
   } else if (mode == "hh") {
     constructionDir = constructionReceiveDir();
-
     auto nbr = nbrAtLabel(constructionDir);
-    int len = nbr.param1;
-    int flag = nbr.param2;
 
-    if (!flag) {
+    if (!nbr.param2) {
       param2 = 0;
-      constructionDir = (constructionDir + 1) % 6;
+      while (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish
+                                                    || nbrAtLabel(constructionDir).state == State::Seed)) {
+        constructionDir = (constructionDir + 1) % 6;
+      }
 
-      if (hasNbrAtLabel(constructionDir) &&
-          (nbrAtLabel(constructionDir).state == State::Finish ||
-                                             nbrAtLabel(constructionDir).state == State::Seed)) {
-        constructionDir = (constructionDir + 1) % 6;
-      }
-      if (hasNbrAtLabel(constructionDir) &&
-          (nbrAtLabel(constructionDir).state == State::Finish ||
-           nbrAtLabel(constructionDir).state == State::Seed)) {
-        constructionDir = (constructionDir + 1) % 6;
-      }
     } else {
-      param1 = len + 1;
-      if (len + 1 == 4) { // n - 1
-        constructionDir = (constructionDir + 4) % 6;
+      param1 = nbr.param1 + 1;
+      if (param1 == 4) { // n
+        constructionDir = (constructionDir + 4) % 6; // replace with 2 to show contrary
       } else {
         constructionDir = (constructionDir + 3) % 6;
-      }
-
-      if (param1 == 5) { // n
-        param1 = 1;
+        if (param1 == 5) { // n + 1
+          param1 = 1; // 2
+        }
       }
 
       if (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish ||
                                              nbrAtLabel(constructionDir).state == State::Seed)) {
-        constructionDir = (constructionDir + 5) % 6;
+        constructionDir = (constructionDir + 5) % 6; // replace with 1 to show contrary
         param2 = 0;
       }
     }
 
-   }
+  } else if (mode == "ht") {
+    constructionDir = constructionReceiveDir();
+    auto nbr = nbrAtLabel(constructionDir);
+
+    if (!nbr.param2) {
+      param2 = 0;
+
+      constructionDir = (constructionDir + 1) % 6;
+
+      if (nbr.constructionDir == (nbr.constructionReceiveDir() + 4) % 6) {
+        constructionDir = (constructionDir + 1) % 6;
+      } else if (hasNbrAtLabel(constructionDir) &&
+                 (nbrAtLabel(constructionDir).state == State::Seed ||
+                  nbrAtLabel(constructionDir).state == State::Finish)) {
+        constructionDir = (constructionDir + 2) % 6;
+      }
+
+      if (hasNbrAtLabel(constructionDir) &&
+          (nbrAtLabel(constructionDir).state == State::Seed ||
+           nbrAtLabel(constructionDir).state == State::Finish)) {
+        constructionDir = (constructionDir + 1) % 6;
+      }
+    } else {
+      param1 = nbr.param1 + 1;
+      if (param1 == 10) { // n
+        constructionDir = (constructionDir + 1) % 6; // replace with 5 to show contrary
+      } else {
+        constructionDir = (constructionDir + 3) % 6;
+        if (param1 == 11) { // n + 1
+          param1 = 1; // 2
+        }
+      }
+
+      if (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish ||
+                                             nbrAtLabel(constructionDir).state == State::Seed)) {
+        constructionDir = (constructionDir + 1) % 6; // replace with 5 to show contrary
+        param2 = 0;
+      }
+    }
+  }
     else {
     // This is executing in an invalid mode.
     Q_ASSERT(false);
@@ -370,7 +398,8 @@ bool ShapeFormationParticle::hasTailFollower() const {
 ShapeFormationSystem::ShapeFormationSystem(int numParticles, double holeProb,
                                            QString mode) {
   Q_ASSERT(mode == "h" || mode == "s" || mode == "t1" || mode == "t2" ||
-           mode == "l" || mode == "z" || mode == "hh");
+           mode == "t1x2" || mode == "l" || mode == "z" || mode == "hh" ||
+           mode == "ht");
   Q_ASSERT(numParticles > 0);
   Q_ASSERT(0 <= holeProb && holeProb <= 1);
 
@@ -438,6 +467,6 @@ bool ShapeFormationSystem::hasTerminated() const {
 }
 
 std::set<QString> ShapeFormationSystem::getAcceptedModes() {
-  std::set<QString> set = {"h", "t1", "t2", "s", "l", "z", "hh"};
+  std::set<QString> set = {"h", "t1", "t1x2", "t2", "s", "l", "z", "hh", "ht"};
   return set;
 }
