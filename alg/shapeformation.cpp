@@ -290,7 +290,7 @@ void ShapeFormationParticle::updateConstructionDir() {
     auto nbr = nbrAtLabel(constructionDir);
     int amp = nbr.param1;
     int offset = nbr.param2;
-    if (abs(amp + offset) == 3) {
+    if (abs(amp + offset) == 3) { // n
       constructionDir = (constructionDir + offset) % 6;
       param1 = amp + offset;
       param2 = -offset;
@@ -325,13 +325,13 @@ void ShapeFormationParticle::updateConstructionDir() {
       }
     } else {
       param1 = len + 1;
-      if (len + 1 == 4) {
+      if (len + 1 == 4) { // n - 1
         constructionDir = (constructionDir + 4) % 6;
       } else {
         constructionDir = (constructionDir + 3) % 6;
       }
 
-      if (param1 == 5) {
+      if (param1 == 5) { // n
         param1 = 1;
       }
 
