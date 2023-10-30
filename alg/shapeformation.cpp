@@ -11,12 +11,13 @@ ShapeFormationParticle::ShapeFormationParticle(const Node head,
                                                const int orientation,
                                                AmoebotSystem& system,
                                                State state, const QString mode,
-                                               int param1, int param2)
+                                               int length, int currentLen, int flag)
   : AmoebotParticle(head, globalTailDir, orientation, system),
     state(state),
     mode(mode),
-    param1(param1),
-    param2(param2),
+    length(length),
+    flag(flag),
+    currentLen(currentLen),
     constructionDir(-1),
     moveDir(-1),
     followDir(-1) {
@@ -185,7 +186,7 @@ int ShapeFormationParticle::constructionReceiveDir() const {
           (p.state == State::Seed || p.state == State::Finish) &&
           (pointsAtMe(p, p.constructionDir) ||
            pointsAtMe(p, (p.constructionDir + 3) % 6));
-    } else if (p.mode == "z" || p.mode == "t1x2") {
+    } else if (p.mode == "z" || p.mode == "t1b") {
       return isContracted() &&
              (((p.state == State::Seed || p.state == State::Finish) &&
                                     pointsAtMe(p, p.constructionDir)) ||
@@ -240,7 +241,7 @@ void ShapeFormationParticle::updateConstructionDir() {
         constructionDir = (constructionDir + 2) % 6;
       }
     }
-  } else if (mode == "t1" || mode == "t1x2") {  // Vertex Triangle construction.
+  } else if (mode == "t1" || mode == "t1b") {  // Vertex Triangle construction.
     constructionDir = constructionReceiveDir();
     int labelOfFirstNbr = labelOfFirstNbrInState({State::Finish, State::Seed},
                                                  (constructionDir + 5) % 6);
@@ -288,46 +289,46 @@ void ShapeFormationParticle::updateConstructionDir() {
     constructionDir = constructionReceiveDir();
 
     auto nbr = nbrAtLabel(constructionDir);
-    int amp = nbr.param1;
-    int offset = nbr.param2;
-    if (abs(amp + offset) == 3) { // n
+    int amp = nbr.currentLen;
+    int offset = nbr.flag;
+    if (abs(amp + offset) == length) { // n
       constructionDir = (constructionDir + offset) % 6;
-      param1 = amp + offset;
-      param2 = -offset;
+      currentLen = amp + offset;
+      flag = -offset;
       if (constructionDir < 0) {
         constructionDir += 6;
       }
     } else {
       constructionDir = (constructionDir + 3) % 6;
-      param1 = amp + offset;
-      param2 = offset;
+      currentLen = amp + offset;
+      flag = offset;
     }
   } else if (mode == "hh") {
     constructionDir = constructionReceiveDir();
     auto nbr = nbrAtLabel(constructionDir);
 
-    if (!nbr.param2) {
-      param2 = 0;
+    if (!nbr.flag) {
+      flag = 0;
       while (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish
                                                     || nbrAtLabel(constructionDir).state == State::Seed)) {
         constructionDir = (constructionDir + 1) % 6;
       }
 
     } else {
-      param1 = nbr.param1 + 1;
-      if (param1 == 4) { // n
+      currentLen = nbr.currentLen + 1;
+      if (currentLen == length - 1) { // n
         constructionDir = (constructionDir + 4) % 6; // replace with 2 to show contrary
       } else {
         constructionDir = (constructionDir + 3) % 6;
-        if (param1 == 5) { // n + 1
-          param1 = 1; // 2
+        if (currentLen == length) { // n + 1
+          currentLen = 1; // 2
         }
       }
 
       if (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish ||
                                              nbrAtLabel(constructionDir).state == State::Seed)) {
         constructionDir = (constructionDir + 5) % 6; // replace with 1 to show contrary
-        param2 = 0;
+        flag = 0;
       }
     }
 
@@ -335,8 +336,8 @@ void ShapeFormationParticle::updateConstructionDir() {
     constructionDir = constructionReceiveDir();
     auto nbr = nbrAtLabel(constructionDir);
 
-    if (!nbr.param2) {
-      param2 = 0;
+    if (!nbr.flag) {
+      flag = 0;
 
       constructionDir = (constructionDir + 1) % 6;
 
@@ -354,20 +355,20 @@ void ShapeFormationParticle::updateConstructionDir() {
         constructionDir = (constructionDir + 1) % 6;
       }
     } else {
-      param1 = nbr.param1 + 1;
-      if (param1 == 10) { // n
+      currentLen = nbr.currentLen + 1;
+      if (currentLen == length - 1) { // n
         constructionDir = (constructionDir + 1) % 6; // replace with 5 to show contrary
       } else {
         constructionDir = (constructionDir + 3) % 6;
-        if (param1 == 11) { // n + 1
-          param1 = 1; // 2
+        if (currentLen == length) { // n + 1
+          currentLen = 1; // 2
         }
       }
 
       if (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish ||
                                              nbrAtLabel(constructionDir).state == State::Seed)) {
         constructionDir = (constructionDir + 1) % 6; // replace with 5 to show contrary
-        param2 = 0;
+        flag = 0;
       }
     }
   }
@@ -396,9 +397,9 @@ bool ShapeFormationParticle::hasTailFollower() const {
 }
 
 ShapeFormationSystem::ShapeFormationSystem(int numParticles, double holeProb,
-                                           QString mode) {
+                                           QString mode, int length) {
   Q_ASSERT(mode == "h" || mode == "s" || mode == "t1" || mode == "t2" ||
-           mode == "t1x2" || mode == "l" || mode == "z" || mode == "hh" ||
+           mode == "t1b" || mode == "l" || mode == "z" || mode == "hh" ||
            mode == "ht");
   Q_ASSERT(numParticles > 0);
   Q_ASSERT(0 <= holeProb && holeProb <= 1);
@@ -406,7 +407,7 @@ ShapeFormationSystem::ShapeFormationSystem(int numParticles, double holeProb,
   // Insert the seed at (0,0).
   std::set<Node> occupied;
   insert(new ShapeFormationParticle(Node(0, 0), -1, randDir(), *this,
-                                    ShapeFormationParticle::State::Seed, mode, 0, 1));
+                                    ShapeFormationParticle::State::Seed, mode, length, 0, 1));
   occupied.insert(Node(0, 0));
 
   std::set<Node> candidates;
@@ -434,7 +435,7 @@ ShapeFormationSystem::ShapeFormationSystem(int numParticles, double holeProb,
     if (randBool(1.0 - holeProb)) {
       insert(new ShapeFormationParticle(randCand, -1, randDir(), *this,
                                         ShapeFormationParticle::State::Idle,
-                                        mode, 0, 1));
+                                        mode, length, 0, 1));
       occupied.insert(randCand);
       particlesAdded++;
 
@@ -467,6 +468,6 @@ bool ShapeFormationSystem::hasTerminated() const {
 }
 
 std::set<QString> ShapeFormationSystem::getAcceptedModes() {
-  std::set<QString> set = {"h", "t1", "t1x2", "t2", "s", "l", "z", "hh", "ht"};
+  std::set<QString> set = {"h", "t1", "t1b", "t2", "s", "l", "z", "hh", "ht"};
   return set;
 }

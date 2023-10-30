@@ -378,15 +378,18 @@ ShapeFormationAlg::ShapeFormationAlg() :
   addParameter("# Particles", "200");
   addParameter("Hole Prob.", "0.2");
   addParameter("Shape", "h");
+  addParameter("Length", "10");
 }
 
 void ShapeFormationAlg::instantiate(const int numParticles,
-                                    const double holeProb, const QString mode) {
+                                    const double holeProb, const QString mode, const int length) {
   std::set<QString> set = ShapeFormationSystem::getAcceptedModes();
   if (numParticles <= 0) {
     emit log("# particles must be > 0", true);
   } else if (holeProb < 0 || holeProb > 1) {
     emit log("holeProb in [0,1] required", true);
+  } else if (length <= 1) {
+    emit log("length must be greater than 1", true);
   } else if (set.find(mode) == set.end()) {
     QString accepted = "";
     for(std::set<QString>::iterator it = set.begin(); it != set.end(); ++it) {
@@ -396,7 +399,7 @@ void ShapeFormationAlg::instantiate(const int numParticles,
     emit log("only accepted modes are: " + accepted, true);
   } else {
     emit setSystem(std::make_shared<ShapeFormationSystem>(numParticles,
-                                                          holeProb, mode));
+                                                          holeProb, mode, length));
   }
 }
 

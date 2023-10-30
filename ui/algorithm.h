@@ -232,7 +232,7 @@ class ShapeFormationAlg : public Algorithm {
 
  public slots:
   void instantiate(const int numParticles = 200, const double holeProb = 0.2,
-                   const QString mode = "h");
+                   const QString mode = "h", const int length = 10);
 };
 
 class AlgorithmList {

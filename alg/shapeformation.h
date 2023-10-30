@@ -40,7 +40,7 @@ class ShapeFormationParticle : public AmoebotParticle {
   ShapeFormationParticle(const Node head, const int globalTailDir,
                          const int orientation, AmoebotSystem& system,
                          State state, const QString mode,
-                         int param1, int param2);
+                         int length, int currentLen, int flag);
 
   // Executes one particle activation.
   virtual void activate();
@@ -97,8 +97,9 @@ class ShapeFormationParticle : public AmoebotParticle {
  protected:
   State state;
   QString mode;
-  int param1;
-  int param2;
+  int length;
+  int currentLen;
+  int flag;
   int turnSignal;
   int constructionDir;
   int moveDir;
@@ -120,7 +121,7 @@ class ShapeFormationSystem : public AmoebotSystem  {
   //   "t2" --> center triangle
   //   "l"  --> line
   ShapeFormationSystem(int numParticles = 200, double holeProb = 0.2,
-                       QString mode = "h");
+                       QString mode = "h", int length = 10);
 
   // Checks whether or not the system's run of the ShapeFormation formation
   // algorithm has terminated (all particles in state Finish).
