@@ -321,8 +321,8 @@ void ShapeFormationParticle::updateConstructionDir() {
 
     if (!nbr.flag) {
       flag = 0;
-      while (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish
-                                                    || nbrAtLabel(constructionDir).state == State::Seed)) {
+      while (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish ||
+                                                nbrAtLabel(constructionDir).state == State::Seed)) {
         constructionDir = (constructionDir + 1) % 6;
       }
 
@@ -335,7 +335,6 @@ void ShapeFormationParticle::updateConstructionDir() {
         constructionDir = (constructionDir + 4) % 6; // replace with 2 to show contrary
       } else {
         constructionDir = (constructionDir + 3) % 6;
-
       }
 
       if (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish ||
