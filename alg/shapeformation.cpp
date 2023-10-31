@@ -5,6 +5,7 @@
 #include "alg/shapeformation.h"
 
 #include <QtGlobal>
+#include <iostream>
 
 ShapeFormationParticle::ShapeFormationParticle(const Node head,
                                                const int globalTailDir,
@@ -16,8 +17,8 @@ ShapeFormationParticle::ShapeFormationParticle(const Node head,
     state(state),
     mode(mode),
     length(length),
-    flag(flag),
     currentLen(currentLen),
+    flag(flag),
     constructionDir(-1),
     moveDir(-1),
     followDir(-1) {
@@ -186,7 +187,12 @@ int ShapeFormationParticle::constructionReceiveDir() const {
           (p.state == State::Seed || p.state == State::Finish) &&
           (pointsAtMe(p, p.constructionDir) ||
            pointsAtMe(p, (p.constructionDir + 3) % 6));
-    } else if (p.mode == "z" || p.mode == "t1b") {
+    } else if (p.mode == "z") {
+      return isContracted() &&
+             (((p.state == State::Seed || p.state == State::Finish) &&
+               pointsAtMe(p, p.constructionDir)) ||
+              (p.state == State::Seed && pointsAtMe(p, (p.constructionDir + 1) % 6)));
+    } else if (p.mode == "t1b") {
       return isContracted() &&
              (((p.state == State::Seed || p.state == State::Finish) &&
                                     pointsAtMe(p, p.constructionDir)) ||
@@ -289,19 +295,25 @@ void ShapeFormationParticle::updateConstructionDir() {
     constructionDir = constructionReceiveDir();
 
     auto nbr = nbrAtLabel(constructionDir);
-    int amp = nbr.currentLen;
-    int offset = nbr.flag;
-    if (abs(amp + offset) == length) { // n
-      constructionDir = (constructionDir + offset) % 6;
-      currentLen = amp + offset;
-      flag = -offset;
+    currentLen = nbr.currentLen + 1;
+
+    bool opp = false;
+    if (nbr.state == State::Seed && !pointsAtMe(nbr, nbr.constructionDir)) {
+      opp = true;
+    }
+    if (currentLen > length) {
+      currentLen = 2;
+    }
+
+    if (currentLen == length) {
+      flag = opp ? nbr.flag : -nbr.flag;
+      constructionDir = (constructionDir + flag) % 6;
       if (constructionDir < 0) {
         constructionDir += 6;
       }
     } else {
+      flag = opp ? -nbr.flag : nbr.flag;
       constructionDir = (constructionDir + 3) % 6;
-      currentLen = amp + offset;
-      flag = offset;
     }
   } else if (mode == "hh") {
     constructionDir = constructionReceiveDir();
@@ -316,13 +328,14 @@ void ShapeFormationParticle::updateConstructionDir() {
 
     } else {
       currentLen = nbr.currentLen + 1;
-      if (currentLen == length - 1) { // n
+      if (currentLen > length) { // n + 1
+        currentLen = 2; // 2
+      }
+      if (currentLen == length) { // n
         constructionDir = (constructionDir + 4) % 6; // replace with 2 to show contrary
       } else {
         constructionDir = (constructionDir + 3) % 6;
-        if (currentLen == length) { // n + 1
-          currentLen = 1; // 2
-        }
+
       }
 
       if (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish ||
@@ -356,13 +369,13 @@ void ShapeFormationParticle::updateConstructionDir() {
       }
     } else {
       currentLen = nbr.currentLen + 1;
-      if (currentLen == length - 1) { // n
+      if (currentLen > length) { // n + 1
+        currentLen = 2; // 2
+      }
+      if (currentLen == length) { // n
         constructionDir = (constructionDir + 1) % 6; // replace with 5 to show contrary
       } else {
         constructionDir = (constructionDir + 3) % 6;
-        if (currentLen == length) { // n + 1
-          currentLen = 1; // 2
-        }
       }
 
       if (hasNbrAtLabel(constructionDir) && (nbrAtLabel(constructionDir).state == State::Finish ||
@@ -407,7 +420,7 @@ ShapeFormationSystem::ShapeFormationSystem(int numParticles, double holeProb,
   // Insert the seed at (0,0).
   std::set<Node> occupied;
   insert(new ShapeFormationParticle(Node(0, 0), -1, randDir(), *this,
-                                    ShapeFormationParticle::State::Seed, mode, length, 0, 1));
+                                    ShapeFormationParticle::State::Seed, mode, length, 1, -1));
   occupied.insert(Node(0, 0));
 
   std::set<Node> candidates;
