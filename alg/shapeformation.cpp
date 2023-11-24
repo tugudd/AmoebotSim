@@ -61,6 +61,9 @@ void ShapeFormationParticle::activate() {
         state = State::Lead;
         updateMoveDir();
         return;
+      } else if ((mode == "hh" || mode == "ht") && isLocked()) {
+        state = State::Locked;
+        return;
       } else if (hasTailAtLabel(followDir)) {
         auto nbr = nbrAtLabel(followDir);
         int nbrContractionDir = nbrDirToDir(nbr, (nbr.tailDir() + 3) % 6);
@@ -74,6 +77,10 @@ void ShapeFormationParticle::activate() {
         updateConstructionDir();
         return;
       } else {
+        if ((mode == "hh" || mode == "ht") && isLocked()) {
+          state = State::Locked;
+          return;
+        }
         updateMoveDir();
         if (!hasNbrAtLabel(moveDir)) {
           expand(moveDir);
@@ -93,6 +100,7 @@ int ShapeFormationParticle::headMarkColor() const {
     case State::Follow: return 0x0000ff;
     case State::Lead:   return 0xff0000;
     case State::Finish: return 0x000000;
+    case State::Locked: return 0xffff00;
   }
 
   return -1;
@@ -128,6 +136,7 @@ QString ShapeFormationParticle::inspectionText() const {
       case State::Follow: return "follow";
       case State::Lead:   return "lead";
       case State::Finish: return "finish";
+      case State::Locked: return "locked";
       default:            return "no state";
     }
   }();
@@ -148,7 +157,14 @@ QString ShapeFormationParticle::inspectionText() const {
       return "center triangle";
     } else if (mode == "l") {
       return "line";
-    } else {
+    } else if (mode == "z") {
+      return "zigzag";
+    } else if (mode == "hh") {
+      return "hollow hexagon";
+    } else if (mode == "ht") {
+      return "hollow triangle";
+    }
+    else {
       return "ERROR";
     }
   }();
@@ -209,6 +225,42 @@ int ShapeFormationParticle::constructionReceiveDir() const {
 
 bool ShapeFormationParticle::canFinish() const {
   return constructionReceiveDir() != -1;
+}
+
+bool ShapeFormationParticle::isLocked() const {
+  int label = 0;
+  int leadNum = 0;
+  bool isSeed = false;
+
+  while (label < 6) {
+    if (hasNbrAtLabel(label)) {
+      if (nbrAtLabel(label).state == State::Locked) {
+        return true;
+      }
+      if (mode == "ht") {
+        if (nbrAtLabel(label).state == State::Finish) {
+          leadNum++;
+          auto p = nbrAtLabel(label);
+          if (p.hasNbrAtLabel((p.constructionDir + 5) % 6) &&
+              p.nbrAtLabel((p.constructionDir + 5) % 6).state == State::Seed) {
+              isSeed = true;
+          }
+        }
+      } else if (mode == "hh") {
+        if (nbrAtLabel(label).state == State::Seed && hasNbrAtLabel((label + 5) % 6) &&
+            nbrAtLabel((label + 5) % 6).state == State::Finish) {
+          auto p = nbrAtLabel((label + 5) % 6);
+          if (p.hasNbrAtLabel((p.constructionDir + 1) % 6) &&
+              p.nbrAtLabel((p.constructionDir + 1) % 6).state == State::Seed) {
+              return true;
+          }
+        }
+      }
+    }
+    label ++;
+  }
+
+  return (leadNum > 3) && isSeed;
 }
 
 void ShapeFormationParticle::updateConstructionDir() {
@@ -328,8 +380,8 @@ void ShapeFormationParticle::updateConstructionDir() {
 
     } else {
       currentLen = nbr.currentLen + 1;
-      if (currentLen > length) { // n + 1
-        currentLen = 2; // 2
+      if (currentLen > length) {
+        currentLen = 2;
       }
       if (currentLen == length) { // n
         constructionDir = (constructionDir + 4) % 6; // replace with 2 to show contrary
@@ -368,10 +420,10 @@ void ShapeFormationParticle::updateConstructionDir() {
       }
     } else {
       currentLen = nbr.currentLen + 1;
-      if (currentLen > length) { // n + 1
-        currentLen = 2; // 2
+      if (currentLen > length) {
+        currentLen = 2;
       }
-      if (currentLen == length) { // n
+      if (currentLen == length) {
         constructionDir = (constructionDir + 1) % 6; // replace with 5 to show contrary
       } else {
         constructionDir = (constructionDir + 3) % 6;
@@ -471,7 +523,8 @@ bool ShapeFormationSystem::hasTerminated() const {
   for (auto p : particles) {
     auto hp = dynamic_cast<ShapeFormationParticle*>(p);
     if (hp->state != ShapeFormationParticle::State::Seed &&
-        hp->state != ShapeFormationParticle::State::Finish) {
+        hp->state != ShapeFormationParticle::State::Finish &&
+        hp->state != ShapeFormationParticle::State::Locked) {
       return false;
     }
   }

@@ -30,7 +30,8 @@ class ShapeFormationParticle : public AmoebotParticle {
     Idle,
     Follow,
     Lead,
-    Finish
+    Finish,
+    Locked
   };
 
   // Constructs a new particle with a node position for its head, a global
@@ -81,6 +82,7 @@ class ShapeFormationParticle : public AmoebotParticle {
 
   // Checks whether this particle is occupying the next position to be filled.
   bool canFinish() const;
+  bool isLocked() const;
 
   // Sets this particle's constructionDir to point at the next position to be
   // filled as it is finishing.

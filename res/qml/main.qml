@@ -187,7 +187,7 @@ ApplicationWindow {
     ScrollView {
       id: parameterView
       Layout.preferredWidth: parent.width
-      Layout.preferredHeight: 105
+      Layout.preferredHeight: 120
       verticalScrollBarPolicy: Qt.ScrollBarAlwaysOn
 
       ListView {
