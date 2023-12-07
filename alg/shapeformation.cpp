@@ -444,10 +444,32 @@ void ShapeFormationParticle::updateConstructionDir() {
 
 void ShapeFormationParticle::updateMoveDir() {
   moveDir = labelOfFirstNbrInState({State::Seed, State::Finish});
+  int label = moveDir;
+
   while (hasNbrAtLabel(moveDir) && (nbrAtLabel(moveDir).state == State::Seed ||
                                     nbrAtLabel(moveDir).state == State::Finish))
   {
     moveDir = (moveDir + 5) % 6;
+  }
+
+  if (mode == "ht") {
+    int cnt = 0;
+    bool flag = false;
+
+    while (cnt < 6) {
+      if (hasNbrAtLabel(label) && (nbrAtLabel(label).state == State::Seed ||
+                                     nbrAtLabel(label).state == State::Finish)) {
+        auto p = nbrAtLabel(label);
+        if (!p.hasNbrAtLabel(p.constructionDir)) {
+          flag = true;
+        }
+      } else if (flag) {
+        moveDir = label;
+        return;
+      }
+      label = (label + 5) % 6;
+      cnt ++;
+    }
   }
 }
 
